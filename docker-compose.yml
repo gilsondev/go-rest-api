@@ -1,0 +1,66 @@
+version: '3'
+services:
+  app:
+    platform: linux/amd64
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: go-rest-api
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+    networks:
+      - api-go
+
+  postgres:
+    image: "postgres"
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=root      
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./backend/migration/docker-database-initial.sql:/docker-entrypoint-initdb.d/docker-database-initial.sql   
+    networks:
+      - api-go
+
+  web:
+    platform: linux/amd64
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: go-rest-api-frontend
+    depends_on:
+      - app
+    ports:
+      - "3000:3000"
+    environment:
+      - HTTPS=false
+      - REACT_APP_API_URL_DOMAIN=app:8000
+    volumes:
+      - ./frontend:/app
+    networks:
+      - api-go
+
+  pgadmin-compose:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "email@email.com"
+      PGADMIN_DEFAULT_PASSWORD: "123456"
+    ports:
+      - "54321:80"
+    depends_on:
+      - postgres
+    networks:
+      - api-go
+
+networks:
+  api-go:
+    driver: bridge
